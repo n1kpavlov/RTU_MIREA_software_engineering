@@ -1,0 +1,1 @@
+http://localhost:2424/random?min=1&max=100

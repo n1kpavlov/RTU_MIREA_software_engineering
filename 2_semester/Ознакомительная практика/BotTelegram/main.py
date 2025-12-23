@@ -3,7 +3,7 @@ from telebot import types
 import webbrowser
 import time
 
-bot = telebot.TeleBot('6983027965:AAF815l256qTksE8E3THWqS1nsNSXlqxhAc')
+bot = telebot.TeleBot('your_token')
 type = ['Услуга №1', 'Услуга №2', 'Услуга №3']
 times = ['9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00']
 t = 0
@@ -167,6 +167,7 @@ def callback_message(callback):
         bot.send_message(callback.message.chat.id, f'Запись прошла успешно.\n'
                                                    f'Будем ждать вас <b>{d}</b> в <em><b>{times[7]}</b></em> '
                                                    f'для оказания услуги <b>{type[t]}</b>', parse_mode='html')
+
 
 
 bot.polling(none_stop=True)

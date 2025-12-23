@@ -1,0 +1,11 @@
+./main.exe ./lib.so 3 e ./input.txt ./encrypted.bin
+./main.exe ./encdec.so 3 d ./encrypted.bin ./decrypted.txt
+cmp ./input.txt ./decrypted.txt
+
+./main.exe ./libencdeclib.so 3 e ./input.txt ./encrypted.bin
+./main.exe ./lib.so 3 d ./encrypted.bin ./decrypted.txt
+cmp ./input.txt ./decrypted.txt
+
+./main.exe ./encdec.so 3 e ./input.txt ./encrypted.bin
+./main.exe ./libencdeclib.so 3 d ./encrypted.bin ./decrypted.txt
+cmp ./input.txt ./decrypted.txt

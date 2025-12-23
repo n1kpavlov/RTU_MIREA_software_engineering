@@ -1,0 +1,45 @@
+@startuml
+scale 900 width
+skinparam node {
+  BackgroundColor White
+  BorderColor #333333
+  FontName Arial
+  FontSize 12
+}
+
+title **Диаграмма развертывания системы продажи театральных билетов**
+
+node "Сервер приложений" as AppServer {
+  component "TicketSystem.exe"
+  component "BookingModule.dll"
+  component "PaymentModule.dll"
+}
+
+node "Сервер БД" as DBServer {
+  database "База данных" {
+    [События]
+    [Места]
+    [Транзакции]
+  }
+}
+
+node "Почтовый сервер" as MailServer {
+  component "NotificationService.exe"
+}
+
+node "Рабочая станция" as AdminPC {
+  component "AdminTool.exe"
+}
+
+node "Платежный шлюз" as PaymentGateway {
+  [Банковский API]
+}
+
+' Соединения с протоколами
+AppServer -[#blue]-> DBServer : "SQL (TCP/5432)"
+AppServer -[#green]-> PaymentGateway : "HTTPS (REST API)"
+AppServer -[#orange]-> MailServer : "SMTP (TLS)"
+AdminPC -[#purple]-> AppServer : "HTTPS (WSS)"
+AdminPC -[#brown]-> DBServer : "SSH (SFTP)"
+
+@enduml

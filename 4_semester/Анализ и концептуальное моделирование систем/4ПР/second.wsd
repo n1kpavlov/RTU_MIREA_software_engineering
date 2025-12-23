@@ -1,0 +1,42 @@
+@startuml second
+actor Покупатель
+participant "Интерфейс пользователя" as UI
+participant "Система управления билетами" as TicketSystem
+participant "База данных" as DB
+participant "Платежный шлюз" as Payment
+
+Покупатель -> UI: Получить афишу
+UI -> TicketSystem: Запрос спектаклей
+TicketSystem -> DB: Запрос событий
+DB --> TicketSystem: Данные о событиях
+TicketSystem --> UI: Список спектаклей
+UI --> Покупатель: Афиша
+
+Покупатель -> UI: Выбор спектакля
+UI -> TicketSystem: Запрос мест
+TicketSystem -> DB: Проверка мест
+DB --> TicketSystem: Статус мест
+
+alt Нет свободных мест
+    TicketSystem --> UI: Отсутствие мест
+    UI --> Покупатель: Уведомление об отсутствии
+else Есть места
+    TicketSystem --> UI: Список мест
+    UI --> Покупатель: Схема зала
+    
+    Покупатель -> UI: Выбор места
+    UI -> TicketSystem: Бронирование
+    TicketSystem -> DB: Временная блокировка
+    DB --> TicketSystem: Успех
+
+    TicketSystem --> UI: Платежные реквезиты
+    UI --> Покупатель: Форма оплаты
+    Покупатель -> UI: Данные карты
+    UI -> Payment: Платеж
+    Payment --> TicketSystem: Успех
+    TicketSystem -> DB: Фиксация продажи
+    DB --> TicketSystem: Успех
+    TicketSystem --> UI: Данные билета
+    UI --> Покупатель: Электронный билет
+end
+@enduml

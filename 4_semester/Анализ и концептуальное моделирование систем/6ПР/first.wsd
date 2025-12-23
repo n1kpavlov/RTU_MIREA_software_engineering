@@ -1,0 +1,49 @@
+@startuml first
+scale 800 width
+skinparam state {
+  BackgroundColor White
+  BorderColor #333333
+  FontName Arial
+  FontSize 12
+  FontStyle bold
+  StartColor #2ecc71
+  EndColor #e74c3c
+}
+
+skinparam note {
+  BackgroundColor #f9f9f9
+  BorderColor #cccccc
+  FontName Arial
+  FontSize 10
+}
+
+title Диаграмма состояний процесса продажи театральных билетов
+
+state "Начальное состояние" as start <<start>>
+state "Свободен" as Available <<state>>
+state "В корзине" as InCart <<state>>
+state "Забронирован" as Reserved <<state>>
+state "Оплачен" as Paid <<state>>
+state "Отменён" as Canceled <<state>>
+state "Возвращён" as Refunded <<state>>
+state "Использован" as Used <<state>>
+state "Ошибка оплаты" as PaymentError <<state>>
+state "Конечное состояние" as end <<end>>
+
+start --> Available : [Инициализация системы]
+Available --> InCart : Покупатель добавил в корзину
+InCart --> Available : [Таймаут 10 мин.]
+InCart --> Reserved : [Данные подтверждены]
+Reserved --> Paid : [Платёж успешен]
+Reserved --> PaymentError : [Ошибка платежа]
+PaymentError --> Reserved : [Повторная попытка]
+PaymentError --> Canceled : [3 неудачные попытки]
+Paid --> Used : [Дата события прошла]
+Paid --> Refunded : [Запрос на возврат]
+Refunded --> Available : [Возврат обработан]
+Canceled --> Available : [Отмена подтверждена]
+Used --> end
+Refunded --> end
+Canceled --> end
+
+@enduml

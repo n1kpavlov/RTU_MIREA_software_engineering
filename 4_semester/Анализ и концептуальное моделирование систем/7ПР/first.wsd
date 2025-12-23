@@ -1,0 +1,54 @@
+@startuml
+scale 900 width
+skinparam component {
+  BackgroundColor White
+  BorderColor #333333
+  FontName Arial
+  FontSize 12
+}
+
+title **Flat Component Diagram for Theater Ticket System**
+
+component "TicketSystem.exe" as MainApp
+component "BookingModule.dll" as Booking
+component "PaymentModule.dll" as Payment
+component "NotificationService.exe" as Notify
+component "DatabaseService.dll" as DB
+component "AdminTool.exe" as Admin
+
+[Seat Selection] as SeatSelect
+[Reservation Logic] as ReservLogic
+[Card Payments] as CardPay
+[Refund System] as Refund
+[Email Alerts] as Email
+[SMS Gateway] as SMS
+[Events Data] as Events
+[Seats Inventory] as Seats
+[Transactions] as Trans
+[Event Management] as EventMgmt
+[Reports] as Reports
+[User Authentication] as Auth
+
+' Component to module connections
+Booking - SeatSelect
+Booking - ReservLogic
+Payment - CardPay
+Payment - Refund
+Notify - Email
+Notify - SMS
+DB - Events
+DB - Seats
+DB - Trans
+Admin - EventMgmt
+Admin - Reports
+MainApp - Auth
+
+' System workflow
+MainApp --> Booking : "1. Request booking"
+Booking --> DB : "2. Check availability"
+MainApp --> Payment : "3. Process payment"
+Payment --> Notify : "4. Send receipt"
+Admin --> DB : "5. Manage data"
+Admin --> MainApp : "6. Configure system"
+
+@enduml

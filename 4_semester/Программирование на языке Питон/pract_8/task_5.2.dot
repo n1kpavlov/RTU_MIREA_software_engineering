@@ -1,0 +1,27 @@
+graph {
+   "task_1";
+   "task_2";
+   "task_3";
+   "task_4";
+   "task_5.1";
+   "task_5.2";
+   "task_5_module";
+   "matplotlib";
+   "sys";
+   "typing";
+   "ast";
+   "pathlib";
+   "importlib";
+   "inspect";
+   "numpy";
+   "os";
+   "task_3" -- "matplotlib";
+   "task_3" -- "numpy";
+   "task_5.1" -- "inspect";
+   "task_5.1" -- "sys";
+   "task_5.1" -- "importlib";
+   "task_5.2" -- "ast";
+   "task_5.2" -- "pathlib";
+   "task_5.2" -- "typing";
+   "task_5.2" -- "os";
+}

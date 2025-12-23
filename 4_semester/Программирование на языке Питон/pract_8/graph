@@ -1,0 +1,9 @@
+// Пример графа
+digraph {
+	A [label="Нода A"]
+	B [label="Нода B"]
+	C [label="Нода C"]
+	A -> B
+	A -> C
+	B -> C [constraint=false]
+}

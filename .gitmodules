@@ -7,3 +7,6 @@
 [submodule "3_semester/Конфигурационное управление/config_converter"]
 	path = 3_semester/Конфигурационное управление/config_converter
 	url = https://github.com/n1kpavlov/config_converter.git
+[submodule "3_semester/Конфигурационное управление/assembler_and_interpreter"]
+	path = 3_semester/Конфигурационное управление/assembler_and_interpreter
+	url = https://github.com/n1kpavlov/assembler_and_interpreter.git

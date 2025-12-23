@@ -10,3 +10,6 @@
 [submodule "3_semester/Конфигурационное управление/assembler_and_interpreter"]
 	path = 3_semester/Конфигурационное управление/assembler_and_interpreter
 	url = https://github.com/n1kpavlov/assembler_and_interpreter.git
+[submodule "4_semester/Технология разработки программных приложений/HabitNinja_Bot"]
+	path = 4_semester/Технология разработки программных приложений/HabitNinja_Bot
+	url = https://github.com/Rapira16/HabitNinja_Bot.git

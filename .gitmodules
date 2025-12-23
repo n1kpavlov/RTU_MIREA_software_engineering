@@ -1,0 +1,3 @@
+[submodule "3_semester/Конфигурационное управление/Shell_Emulator"]
+	path = 3_semester/Конфигурационное управление/Shell_Emulator
+	url = https://github.com/n1kpavlov/Shell_Emulator.git

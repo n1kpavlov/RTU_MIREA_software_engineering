@@ -4,3 +4,6 @@
 [submodule "3_semester/Конфигурационное управление/dependency_visualizer"]
 	path = 3_semester/Конфигурационное управление/dependency_visualizer
 	url = https://github.com/n1kpavlov/dependency_visualizer.git
+[submodule "3_semester/Конфигурационное управление/config_converter"]
+	path = 3_semester/Конфигурационное управление/config_converter
+	url = https://github.com/n1kpavlov/config_converter.git

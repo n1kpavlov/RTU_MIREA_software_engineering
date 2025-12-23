@@ -1,0 +1,1 @@
+typeSearchIndex = [{"l":"All Classes","url":"allclasses-index.html"},{"p":"ru.mirea.trpp_second_9","l":"Application"},{"p":"ru.mirea.trpp_second_9.controllers","l":"HealthController"},{"p":"ru.mirea.trpp_second_9.entity","l":"HealthResponse"},{"p":"ru.mirea.trpp_second_9.entity","l":"Nomenclature"},{"p":"ru.mirea.trpp_second_9.controllers","l":"NomenclatureController"}]

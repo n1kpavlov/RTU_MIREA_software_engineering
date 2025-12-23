@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<checkstyle version="7.8.1">
+<file name="D:\Учеба\ТРПП\3_Gradle\trpp-gradle\src\main\java\ru\mirea\trppsecond9\Application.java">
+</file>
+<file name="D:\Учеба\ТРПП\3_Gradle\trpp-gradle\src\main\java\ru\mirea\trppsecond9\controllers\HealthController.java">
+</file>
+<file name="D:\Учеба\ТРПП\3_Gradle\trpp-gradle\src\main\java\ru\mirea\trppsecond9\controllers\NomenclatureController.java">
+</file>
+<file name="D:\Учеба\ТРПП\3_Gradle\trpp-gradle\src\main\java\ru\mirea\trppsecond9\entity\HealthResponse.java">
+</file>
+<file name="D:\Учеба\ТРПП\3_Gradle\trpp-gradle\src\main\java\ru\mirea\trppsecond9\entity\Nomenclature.java">
+</file>
+</checkstyle>

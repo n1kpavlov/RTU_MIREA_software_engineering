@@ -13,3 +13,6 @@
 [submodule "4_semester/Технология разработки программных приложений/HabitNinja_Bot"]
 	path = 4_semester/Технология разработки программных приложений/HabitNinja_Bot
 	url = https://github.com/Rapira16/HabitNinja_Bot.git
+[submodule "5_semester/Разработка приложений на языке Котлин/project/Finlytics"]
+	path = 5_semester/Разработка приложений на языке Котлин/project/Finlytics
+	url = https://github.com/Hohrandrey/Finlytics.git

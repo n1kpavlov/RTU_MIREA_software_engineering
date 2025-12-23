@@ -1,0 +1,31 @@
+Ovchinnikova Eva 05.03.1981 61 151 w
+Platonova Alice 13.04.2002 58 152 w
+Ryabova Ekaterina 12.11.1996 81 154 w
+Zubkov Alexander 01.05.2000 86 156 m
+Yuri Markov 06.12.1978 100 157 m
+Makarova Anastasia 04.09.1991 50 158 w
+Bykov Georgy 06.09.1984 97 160 m
+Ilyin Artur 28.12.1985 94 166 m
+Zaitsev Makar 04.11.1996 91 166 m
+Rusakov Maxim 08.09.2004 86 170 m
+Zhdanova Camilla 07.06.1977 50 184 w
+Pavlov Nikita 24.09.2005 85 186 m
+Alexey Mayorov 09.07.1991 51 192 m
+Agafonova Alice 12.12.1978 56 193 w
+Alexandrova Alexandra 09.11.1981 91 194 w
+Smirnova Kira 16.10.1995 77 196 w
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

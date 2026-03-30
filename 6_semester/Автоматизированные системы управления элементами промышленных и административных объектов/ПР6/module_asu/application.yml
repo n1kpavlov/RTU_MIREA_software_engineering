@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: asu-inventory-management
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/asu_inventory
+    username: ${DB_USERNAME:asu_user}
+    password: ${DB_PASSWORD:secure_password}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          batch_size: 20
+        format_sql: true
+    show-sql: false
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    date-format: yyyy-MM-dd
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+logging:
+  level:
+    ru.mirea.asu: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: WARN

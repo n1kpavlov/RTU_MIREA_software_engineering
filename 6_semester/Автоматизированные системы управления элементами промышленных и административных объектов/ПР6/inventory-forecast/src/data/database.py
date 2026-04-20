@@ -1,47 +1,41 @@
-"""Модуль для работы с базой данных PostgreSQL."""
+"""Модуль для работы с базой данных PostgreSQL (схема asu_inventory)."""
 import pandas as pd
 from sqlalchemy import create_engine, text
 from loguru import logger
-from typing import Optional, List, Dict, Any
+from typing import Optional, Dict, Any
 
 from src.utils.config import config
 
 
 class DatabaseManager:
-    """Менеджер для работы с БД АСУ."""
+    """Менеджер для работы с БД АСУ (схема asu_inventory)."""
 
     def __init__(self):
+        # Подключение к БД с указанием схемы по умолчанию
         self.engine = create_engine(
             config.db.connection_string,
             pool_size=5,
             max_overflow=10,
-            echo=False
+            echo=False,
+            connect_args={'options': f'-c search_path={config.db.schema},public'}
         )
-        logger.info(f"Подключение к БД: {config.db.host}:{config.db.port}/{config.db.database}")
+        logger.info(f"Подключение к БД: {config.db.host}:{config.db.port}/{config.db.database} (схема: {config.db.schema})")
 
     def get_historical_consumption(
-            self,
-            nomenclature_id: int,
-            start_date: str,
-            end_date: Optional[str] = None
+        self,
+        nomenclature_id: int,
+        start_date: str,
+        end_date: Optional[str] = None
     ) -> pd.DataFrame:
         """
         Загрузка исторических данных по расходу инвентаря.
-
-        Args:
-            nomenclature_id: ID номенклатуры (тип инвентаря)
-            start_date: Начальная дата в формате 'YYYY-MM-DD'
-            end_date: Конечная дата (None = текущая дата)
-
-        Returns:
-            DataFrame с колонками: ds (дата), y (количество выданного инвентаря)
         """
-        query = """
+        query = f"""
         SELECT 
             DATE(d.issuance_date) as ds,
             COUNT(*) as y
-        FROM issuance_documents d
-        JOIN inventory_items i ON d.inventory_item_id = i.id
+        FROM {config.db.schema}.issuance_documents d
+        JOIN {config.db.schema}.inventory_items i ON d.inventory_item_id = i.id
         WHERE i.nomenclature_id = :nomenclature_id
             AND d.issuance_date >= :start_date
         """
@@ -58,7 +52,6 @@ class DatabaseManager:
         with self.engine.connect() as conn:
             df = pd.read_sql(text(query), conn, params=params)
 
-        # Заполняем пропущенные даты нулями
         if not df.empty:
             df['ds'] = pd.to_datetime(df['ds'])
             date_range = pd.date_range(start=df['ds'].min(), end=df['ds'].max())
@@ -70,9 +63,9 @@ class DatabaseManager:
 
     def get_current_stock(self, nomenclature_id: int) -> int:
         """Получение текущего остатка на складе."""
-        query = """
+        query = f"""
         SELECT COUNT(*) as stock
-        FROM inventory_items
+        FROM {config.db.schema}.inventory_items
         WHERE nomenclature_id = :nomenclature_id
             AND status = 'AVAILABLE'
         """
@@ -82,15 +75,15 @@ class DatabaseManager:
 
     def get_nomenclature_info(self, nomenclature_id: int) -> Dict[str, Any]:
         """Получение информации о номенклатуре."""
-        query = """
+        query = f"""
         SELECT 
             id,
             name,
             category,
             min_stock_level,
-            standard_service_life_months,
+            standard_service_life,
             manufacturer
-        FROM nomenclature
+        FROM {config.db.schema}.nomenclature
         WHERE id = :nomenclature_id
         """
         with self.engine.connect() as conn:
@@ -101,17 +94,14 @@ class DatabaseManager:
         return {}
 
     def get_athletes_count_by_size(self, nomenclature_id: int) -> pd.DataFrame:
-        """
-        Получение распределения спортсменов по размерам.
-        Для прогнозирования потребности в конкретных ростовках.
-        """
-        query = """
+        """Получение распределения спортсменов по размерам."""
+        query = f"""
         SELECT 
             i.size,
             COUNT(DISTINCT a.id) as athletes_count
-        FROM athletes a
-        CROSS JOIN nomenclature n
-        LEFT JOIN inventory_items i ON i.nomenclature_id = n.id 
+        FROM {config.db.schema}.athletes a
+        CROSS JOIN {config.db.schema}.nomenclature n
+        LEFT JOIN {config.db.schema}.inventory_items i ON i.nomenclature_id = n.id 
             AND i.status = 'ISSUED' 
             AND i.current_holder_id = a.id
         WHERE n.id = :nomenclature_id
@@ -119,21 +109,3 @@ class DatabaseManager:
         """
         with self.engine.connect() as conn:
             return pd.read_sql(text(query), conn, params={"nomenclature_id": nomenclature_id})
-
-    def get_upcoming_events(self, days_ahead: int = 90) -> pd.DataFrame:
-        """
-        Получение списка предстоящих соревнований и сборов.
-        Влияет на пиковый спрос.
-        """
-        query = """
-        SELECT 
-            event_date,
-            event_type,
-            expected_participants,
-            equipment_needed
-        FROM events
-        WHERE event_date BETWEEN CURRENT_DATE AND CURRENT_DATE + :days_ahead
-        ORDER BY event_date
-        """
-        with self.engine.connect() as conn:
-            return pd.read_sql(text(query), conn, params={"days_ahead": days_ahead})

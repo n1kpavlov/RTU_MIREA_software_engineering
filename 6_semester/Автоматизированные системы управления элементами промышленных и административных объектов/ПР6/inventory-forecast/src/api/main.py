@@ -1,4 +1,4 @@
-"""REST API для модуля прогнозирования."""
+"""REST API для модуля прогнозирования (без events)."""
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -15,7 +15,6 @@ from src.utils.config import config
 
 # Pydantic схемы
 class ForecastRequest(BaseModel):
-    """Запрос на прогнозирование."""
     nomenclature_id: int = Field(..., description="ID номенклатуры")
     forecast_days: int = Field(90, ge=7, le=365, description="Горизонт прогноза в днях")
     include_wear: bool = Field(True, description="Учитывать износ инвентаря")
@@ -23,7 +22,7 @@ class ForecastRequest(BaseModel):
     class Config:
         json_schema_extra = {
             "example": {
-                "nomenclature_id": 123,
+                "nomenclature_id": 1,  # ID из таблицы nomenclature (SKI-001)
                 "forecast_days": 90,
                 "include_wear": True
             }
@@ -31,7 +30,6 @@ class ForecastRequest(BaseModel):
 
 
 class ForecastResponse(BaseModel):
-    """Ответ с прогнозом."""
     nomenclature_id: int
     nomenclature_name: str
     forecast_period_days: int
@@ -50,7 +48,6 @@ class ForecastResponse(BaseModel):
 
 
 class ModelInfoResponse(BaseModel):
-    """Информация о модели."""
     model_name: str
     is_trained: bool
     training_metrics: Dict[str, float]
@@ -58,7 +55,6 @@ class ModelInfoResponse(BaseModel):
 
 
 class TrainRequest(BaseModel):
-    """Запрос на обучение модели."""
     nomenclature_id: int = Field(..., description="ID номенклатуры")
     historical_days: int = Field(365, ge=90, le=1095, description="Дней истории для обучения")
 
@@ -70,7 +66,6 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS для доступа из веб-интерфейса
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -79,28 +74,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Глобальные объекты
 db_manager = DatabaseManager()
 wear_calculator = SkiWearCalculator(db_manager)
 models_cache: Dict[int, SkiInventoryForecastModel] = {}
 
 
 def get_or_train_model(nomenclature_id: int, force_retrain: bool = False) -> SkiInventoryForecastModel:
-    """Получение или обучение модели для номенклатуры."""
     import os
     model_path = os.path.join(config.models_dir, f"model_{nomenclature_id}.pkl")
 
     if not force_retrain and os.path.exists(model_path):
         return SkiInventoryForecastModel.load(model_path)
 
-    # Загрузка исторических данных
     start_date = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
     df = db_manager.get_historical_consumption(nomenclature_id, start_date)
 
     if df.empty:
         raise HTTPException(status_code=404, detail=f"Нет исторических данных для номенклатуры {nomenclature_id}")
 
-    # Обучение модели
     model = SkiInventoryForecastModel(model_name=f"ski_forecast_{nomenclature_id}")
     model.fit(df)
     model.save(model_path)
@@ -111,36 +102,22 @@ def get_or_train_model(nomenclature_id: int, force_retrain: bool = False) -> Ski
 
 @app.get("/health")
 async def health_check():
-    """Проверка работоспособности."""
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
 
 
 @app.post("/forecast", response_model=ForecastResponse)
 async def create_forecast(request: ForecastRequest):
-    """
-    Создание прогноза потребности в закупке.
-
-    Возвращает детальный прогноз с разбивкой по компонентам:
-    - Базовый спрос (на основе исторических данных)
-    - Замена изношенного инвентаря
-    - Страховой запас
-    """
     logger.info(f"Запрос прогноза: nomenclature_id={request.nomenclature_id}, days={request.forecast_days}")
 
     try:
-        # Получение информации о номенклатуре
         info = db_manager.get_nomenclature_info(request.nomenclature_id)
         if not info:
             raise HTTPException(status_code=404, detail=f"Номенклатура {request.nomenclature_id} не найдена")
 
-        # Получение или обучение модели
         model = get_or_train_model(request.nomenclature_id)
-
-        # Прогноз спроса
         demand_forecast = model.predict_demand(periods=request.forecast_days)
         base_demand = demand_forecast['total_demand']
 
-        # Расчет износа и полной потребности
         if request.include_wear:
             replacement_need = wear_calculator.calculate_replacement_need(
                 request.nomenclature_id,
@@ -159,7 +136,6 @@ async def create_forecast(request: ForecastRequest):
                 'total_need': base_demand + max(0, info.get('min_stock_level', 5) - current_stock)
             }
 
-        # Рекомендуемый заказ (с учетом текущего остатка)
         recommended_order = max(0, replacement_need['total_need'] - replacement_need['current_stock'])
 
         start_date = datetime.now().date()
@@ -192,12 +168,6 @@ async def create_forecast(request: ForecastRequest):
 
 @app.post("/train", response_model=ModelInfoResponse)
 async def train_model(request: TrainRequest):
-    """
-    Обучение модели на исторических данных.
-
-    Используется для первоначального обучения или переобучения
-    при накоплении новых данных.
-    """
     logger.info(f"Запрос обучения модели: nomenclature_id={request.nomenclature_id}")
 
     try:
@@ -231,15 +201,12 @@ async def train_model(request: TrainRequest):
 
 @app.get("/model/{nomenclature_id}", response_model=ModelInfoResponse)
 async def get_model_info(nomenclature_id: int):
-    """Получение информации о модели для номенклатуры."""
     import os
     model_path = os.path.join(config.models_dir, f"model_{nomenclature_id}.pkl")
 
     if os.path.exists(model_path):
         try:
             model = SkiInventoryForecastModel.load(model_path)
-            # Получение времени последнего изменения файла
-            import os
             mtime = os.path.getmtime(model_path)
             last_trained = datetime.fromtimestamp(mtime).isoformat()
 
@@ -262,10 +229,9 @@ async def get_model_info(nomenclature_id: int):
 
 @app.get("/nomenclature/{nomenclature_id}/history")
 async def get_historical_data(
-        nomenclature_id: int,
-        days: int = Query(365, ge=30, le=1095, description="Количество дней истории")
+    nomenclature_id: int,
+    days: int = Query(365, ge=30, le=1095)
 ):
-    """Получение исторических данных по расходу инвентаря."""
     start_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
     df = db_manager.get_historical_consumption(nomenclature_id, start_date)
 
@@ -273,16 +239,6 @@ async def get_historical_data(
         "nomenclature_id": nomenclature_id,
         "days": days,
         "data": df.to_dict('records') if not df.empty else []
-    }
-
-
-@app.get("/events/upcoming")
-async def get_upcoming_events(days: int = Query(90, ge=7, le=365)):
-    """Получение предстоящих соревнований и сборов."""
-    df = db_manager.get_upcoming_events(days)
-    return {
-        "days_ahead": days,
-        "events": df.to_dict('records') if not df.empty else []
     }
 
 

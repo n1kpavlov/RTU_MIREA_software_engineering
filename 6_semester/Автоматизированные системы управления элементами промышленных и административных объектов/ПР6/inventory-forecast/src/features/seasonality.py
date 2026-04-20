@@ -16,80 +16,51 @@ class SkiSeasonalityCalculator:
     - Межсезонье (апрель-июль): обслуживание и ремонт
     """
 
-    # Месячные коэффициенты спроса (на основе исторических данных)
     MONTHLY_FACTORS = {
-        1: 1.2,  # Январь - пик сезона
-        2: 1.3,  # Февраль - пик сезона
-        3: 1.1,  # Март - завершение сезона
-        4: 0.4,  # Апрель - межсезонье
-        5: 0.2,  # Май - межсезонье
-        6: 0.1,  # Июнь - минимум
-        7: 0.1,  # Июль - минимум
-        8: 0.5,  # Август - начало подготовки
-        9: 0.8,  # Сентябрь - активная подготовка
+        1: 1.2,   # Январь - пик сезона
+        2: 1.3,   # Февраль - пик сезона
+        3: 1.1,   # Март - завершение сезона
+        4: 0.4,   # Апрель - межсезонье
+        5: 0.2,   # Май - межсезонье
+        6: 0.1,   # Июнь - минимум
+        7: 0.1,   # Июль - минимум
+        8: 0.5,   # Август - начало подготовки
+        9: 0.8,   # Сентябрь - активная подготовка
         10: 1.0,  # Октябрь - предсезонные сборы
         11: 1.1,  # Ноябрь - начало соревнований
-        12: 1.2  # Декабрь - разгар сезона
+        12: 1.2   # Декабрь - разгар сезона
     }
 
     @classmethod
     def get_monthly_factor(cls, month: int) -> float:
-        """Получить коэффициент для месяца."""
         return cls.MONTHLY_FACTORS.get(month, 1.0)
 
     @classmethod
     def create_seasonality_features(cls, dates: pd.DatetimeIndex) -> pd.DataFrame:
-        """
-        Создание признаков сезонности для модели.
-
-        Args:
-            dates: Индекс с датами
-
-        Returns:
-            DataFrame с признаками: month, is_winter_season, is_preparation_period
-        """
         df = pd.DataFrame(index=dates)
         df['month'] = dates.month
         df['month_factor'] = df['month'].map(cls.MONTHLY_FACTORS)
         df['is_winter_season'] = df['month'].isin([11, 12, 1, 2, 3]).astype(int)
         df['is_preparation_period'] = df['month'].isin([8, 9, 10]).astype(int)
         df['is_off_season'] = df['month'].isin([4, 5, 6, 7]).astype(int)
-
-        # День недели (выдача чаще в начале недели)
         df['day_of_week'] = dates.dayofweek
         df['is_weekend'] = (df['day_of_week'] >= 5).astype(int)
-
         return df
 
     @classmethod
     def adjust_forecast_by_seasonality(
-            cls,
-            forecast: pd.DataFrame,
-            seasonality_multiplier: float = 1.0
+        cls,
+        forecast: pd.DataFrame,
+        seasonality_multiplier: float = 1.0
     ) -> pd.DataFrame:
-        """
-        Корректировка прогноза с учетом сезонности.
-
-        Args:
-            forecast: Прогноз с колонкой 'ds' (дата)
-            seasonality_multiplier: Множитель сезонности (для усиления/ослабления)
-
-        Returns:
-            Скорректированный прогноз
-        """
         forecast = forecast.copy()
         forecast['month'] = pd.to_datetime(forecast['ds']).dt.month
         forecast['seasonality_factor'] = forecast['month'].map(cls.MONTHLY_FACTORS)
-
-        # Нормализация факторов
         mean_factor = np.mean(list(cls.MONTHLY_FACTORS.values()))
         forecast['seasonality_factor'] = forecast['seasonality_factor'] / mean_factor
 
-        # Применение к прогнозу
         forecast['yhat'] = forecast['yhat'] * (1 + (forecast['seasonality_factor'] - 1) * seasonality_multiplier)
-        forecast['yhat_lower'] = forecast['yhat_lower'] * (
-                    1 + (forecast['seasonality_factor'] - 1) * seasonality_multiplier)
-        forecast['yhat_upper'] = forecast['yhat_upper'] * (
-                    1 + (forecast['seasonality_factor'] - 1) * seasonality_multiplier)
+        forecast['yhat_lower'] = forecast['yhat_lower'] * (1 + (forecast['seasonality_factor'] - 1) * seasonality_multiplier)
+        forecast['yhat_upper'] = forecast['yhat_upper'] * (1 + (forecast['seasonality_factor'] - 1) * seasonality_multiplier)
 
         return forecast

@@ -1,54 +1,41 @@
 """Расчет коэффициента износа лыжного инвентаря."""
 import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta
-from typing import Dict, Optional
+from typing import Dict
 from loguru import logger
 from sqlalchemy import text
 
+from src.utils.config import config
+
 
 class SkiWearCalculator:
-    """
-    Калькулятор износа лыжного инвентаря.
-
-    Учитывает:
-    - Нормативный срок службы (из карточки номенклатуры)
-    - Интенсивность использования (количество выдач)
-    - Сезонность использования
-    - Плановую замену инвентаря
-    """
+    """Калькулятор износа лыжного инвентаря."""
 
     def __init__(self, db_manager):
         self.db_manager = db_manager
 
     def calculate_wear_rate(
-            self,
-            nomenclature_id: int,
-            forecast_horizon_days: int
+        self,
+        nomenclature_id: int,
+        forecast_horizon_days: int
     ) -> float:
-        """
-        Расчет ожидаемого процента износа за период прогноза.
-
-        Returns:
-            Коэффициент износа (0-1) - доля инвентаря, требующая замены
-        """
+        """Расчет ожидаемого процента износа за период прогноза."""
         info = self.db_manager.get_nomenclature_info(nomenclature_id)
         if not info:
             logger.warning(f"Номенклатура {nomenclature_id} не найдена")
-            return 0.05  # Значение по умолчанию 5% в квартал
+            return 0.05
 
-        standard_life_months = info.get('standard_service_life_months', 24)
+        standard_life_months = info.get('standard_service_life', 24)
 
-        # Запрос среднего возраста инвентаря
-        query = """
+        query = f"""
         SELECT 
-            AVG(EXTRACT(DAY FROM NOW() - commissioning_date)) / 30.0 as avg_age_months,
+            AVG(EXTRACT(DAY FROM NOW() - receipt_date)) / 30.0 as avg_age_months,
             COUNT(*) as total_items,
             COUNT(CASE 
-                WHEN EXTRACT(MONTH FROM AGE(NOW(), commissioning_date)) > :standard_life_months 
+                WHEN EXTRACT(MONTH FROM AGE(NOW(), receipt_date)) > :standard_life_months 
                 THEN 1 
             END) as expired_items
-        FROM inventory_items
+        FROM {config.db.schema}.inventory_items
         WHERE nomenclature_id = :nomenclature_id
             AND status NOT IN ('WRITTEN_OFF', 'DEFECTIVE')
         """
@@ -63,43 +50,31 @@ class SkiWearCalculator:
             if row and row.total_items > 0:
                 avg_age_months = row.avg_age_months or 0
                 expired_ratio = row.expired_items / row.total_items
-
-                # Прогнозируемый износ за период
                 forecast_months = forecast_horizon_days / 30.0
                 forecast_wear = (avg_age_months + forecast_months) / standard_life_months
-                forecast_wear = np.clip(forecast_wear, 0.05, 0.5)  # Минимум 5%, максимум 50%
+                forecast_wear = np.clip(forecast_wear, 0.05, 0.5)
 
                 logger.info(f"Средний возраст: {avg_age_months:.1f} мес, "
-                            f"просрочено: {expired_ratio:.1%}, "
-                            f"прогноз износа: {forecast_wear:.1%}")
+                          f"просрочено: {expired_ratio:.1%}, "
+                          f"прогноз износа: {forecast_wear:.1%}")
 
                 return max(forecast_wear, expired_ratio)
 
         return 0.05
 
     def calculate_replacement_need(
-            self,
-            nomenclature_id: int,
-            forecasted_demand: float,
-            forecast_horizon_days: int
+        self,
+        nomenclature_id: int,
+        forecasted_demand: float,
+        forecast_horizon_days: int
     ) -> Dict[str, float]:
-        """
-        Расчет полной потребности в закупке с учетом износа.
-
-        Returns:
-            Словарь с компонентами потребности:
-            - base_demand: базовый спрос
-            - wear_replacement: замена изношенного инвентаря
-            - safety_stock: страховой запас
-            - total_need: итоговая потребность
-        """
+        """Расчет полной потребности в закупке с учетом износа."""
         current_stock = self.db_manager.get_current_stock(nomenclature_id)
         wear_rate = self.calculate_wear_rate(nomenclature_id, forecast_horizon_days)
 
-        # Оценка общего количества инвентаря в обращении
-        query = """
+        query = f"""
         SELECT COUNT(*) as total_active
-        FROM inventory_items
+        FROM {config.db.schema}.inventory_items
         WHERE nomenclature_id = :nomenclature_id
             AND status IN ('AVAILABLE', 'ISSUED', 'RESERVED')
         """
@@ -107,7 +82,6 @@ class SkiWearCalculator:
             result = conn.execute(text(query), {"nomenclature_id": nomenclature_id})
             total_active = result.scalar() or 0
 
-        # Расчет компонентов
         base_demand = forecasted_demand
         wear_replacement = total_active * wear_rate
 

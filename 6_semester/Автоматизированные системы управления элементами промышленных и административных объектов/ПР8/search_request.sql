@@ -4,20 +4,20 @@ SELECT
     u.email,
     u.phone,
     a.sports_category,
-    g.name AS group_name,
+    g.group_name,
     cu.full_name AS coach_name,
-    COUNT(d.id) AS overdue_items_count,
-    STRING_AGG(i.barcode || ' (' || n.name || ', просрочен на ' || 
+    COUNT(d.issuance_document_id) AS overdue_items_count,
+    STRING_AGG(i.barcode || ' (' || n.nomenclature_name || ', просрочен на ' || 
                (CURRENT_DATE - d.planned_return_date) || ' дн.)', '; ') AS overdue_items
-FROM athletes a
-JOIN users u ON a.user_id = u.id
-LEFT JOIN groups g ON a.group_id = g.id
-LEFT JOIN coaches c ON a.coach_id = c.id
-LEFT JOIN users cu ON c.user_id = cu.id
-JOIN issuance_documents d ON a.id = d.athlete_id
-JOIN inventory_items i ON d.inventory_item_id = i.id
-JOIN nomenclature n ON i.nomenclature_id = n.id
-WHERE d.status IN ('ACTIVE', 'OVERDUE') 
+FROM athlete a
+JOIN "user" u ON a.athlete_user_id = u.user_id
+LEFT JOIN "group" g ON a.athlete_group_id = g.group_id
+LEFT JOIN coach c ON a.athlete_coach_id = c.coach_id
+LEFT JOIN "user" cu ON c.coach_user_id = cu.user_id
+JOIN issuance_document d ON a.athlete_id = d.issuance_document_athlete_id
+JOIN inventory_item i ON d.issuance_document_inventory_item_id = i.inventory_item_id
+JOIN nomenclature n ON i.inventory_item_nomenclature_id = n.nomenclature_id
+WHERE d.issuance_document_status IN ('ACTIVE', 'OVERDUE') 
   AND d.planned_return_date < CURRENT_DATE
-GROUP BY u.full_name, u.email, u.phone, a.sports_category, g.name, cu.full_name
+GROUP BY u.full_name, u.email, u.phone, a.sports_category, g.group_name, cu.full_name
 ORDER BY overdue_items_count DESC;

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>АСУ МТО — Управление инвентарём</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Шапка -->
+    <header>
+        <div class="header-content">
+            <h1>⛷️ АСУ МТО</h1>
+            <span class="subtitle">Лыжная организация</span>
+        </div>
+        <nav>
+            <button onclick="showTab('dashboard')" class="active">📊 Дашборд</button>
+            <button onclick="showTab('athletes')">🏃 Спортсмены</button>
+            <button onclick="showTab('issuances')">📋 Выдачи</button>
+            <button onclick="showTab('inventory')">📦 Склад</button>
+            <button onclick="showTab('statistics')">📈 Статистика</button>
+        </nav>
+    </header>
+
+    <!-- Тост -->
+    <div id="toast" class="toast hidden"></div>
+
+    <main>
+        <!-- Дашборд -->
+        <section id="tab-dashboard" class="tab active">
+            <div class="kpi-grid" id="kpi-grid">
+                <div class="kpi-card"><div class="kpi-value skeleton">—</div><div class="kpi-label">Спортсменов</div></div>
+                <div class="kpi-card"><div class="kpi-value skeleton">—</div><div class="kpi-label">Доступно инвентаря</div></div>
+                <div class="kpi-card"><div class="kpi-value skeleton">—</div><div class="kpi-label">Активных выдач</div></div>
+                <div class="kpi-card"><div class="kpi-value skeleton">—</div><div class="kpi-label">Просрочено</div></div>
+                <div class="kpi-card warning"><div class="kpi-value skeleton">—</div><div class="kpi-label">Должников</div></div>
+            </div>
+            <div class="dashboard-grid">
+                <div class="chart-card">
+                    <h3>📦 Инвентарь по категориям (в наличии)</h3>
+                    <div id="category-chart"></div>
+                </div>
+                <div class="chart-card">
+                    <h3>🕐 Последние выдачи</h3>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead><tr><th>Спортсмен</th><th>Товар</th><th>Выдано</th><th>Вернуть до</th><th>Статус</th></tr></thead>
+                            <tbody id="recent-issuances-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>⚠️ Топ должников</h3>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead><tr><th>Спортсмен</th><th>Разряд</th><th>Просрочено</th><th>Макс. дней</th></tr></thead>
+                            <tbody id="top-debtors-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Спортсмены -->
+        <section id="tab-athletes" class="tab">
+            <div class="section-header">
+                <h2>🏃 Спортсмены</h2>
+                <div class="controls">
+                    <input type="text" id="athlete-search" placeholder="🔍 Поиск по фамилии..." oninput="debounceSearch()">
+                    <select id="debt-filter" onchange="loadAthletes()">
+                        <option value="">Все</option>
+                        <option value="true">Должники</option>
+                        <option value="false">Без долгов</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>ФИО</th><th>Разряд</th><th>Год</th><th>Группа</th><th>Тренер</th><th>Выдач</th><th>Долг</th><th></th></tr></thead>
+                    <tbody id="athletes-tbody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Выдачи -->
+        <section id="tab-issuances" class="tab">
+            <div class="section-header">
+                <h2>📋 Выдачи</h2>
+                <div class="controls">
+                    <button class="btn-primary" onclick="openIssueModal()">📤 Выдать инвентарь</button>
+                    <select id="issuance-filter" onchange="loadIssuances()">
+                        <option value="all">Все</option>
+                        <option value="overdue">Просроченные</option>
+                        <option value="active">Активные</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>Спортсмен</th><th>Товар</th><th>Размер</th><th>Выдано</th><th>Вернуть до</th><th>Статус</th><th></th></tr></thead>
+                    <tbody id="issuances-tbody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Склад -->
+        <section id="tab-inventory" class="tab">
+            <div class="section-header"><h2>📦 Доступный инвентарь</h2></div>
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>Штрих-код</th><th>Наименование</th><th>Категория</th><th>Размер</th></tr></thead>
+                    <tbody id="inventory-tbody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Статистика -->
+        <section id="tab-statistics" class="tab">
+            <div class="section-header"><h2>📈 Статистика по инвентарю</h2></div>
+            <div id="stats-container"></div>
+        </section>
+    </main>
+
+    <!-- Модальное окно: Выдача -->
+    <div id="issue-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeIssueModal()">×</span>
+            <h2>📤 Выдача инвентаря</h2>
+            <form id="issue-form" onsubmit="event.preventDefault(); issueInventory();">
+                <label>Спортсмен</label>
+                <select id="issue-athlete" required><option value="">— Выберите —</option></select>
+                <label>Инвентарь</label>
+                <select id="issue-inventory" required><option value="">— Сначала выберите спортсмена —</option></select>
+                <label>Дата возврата</label>
+                <input type="date" id="issue-return-date" required>
+                <button type="submit" class="btn-primary-full">🚀 Выдать</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно: Детали спортсмена -->
+    <div id="athlete-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeAthleteModal()">×</span>
+            <div id="athlete-detail"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

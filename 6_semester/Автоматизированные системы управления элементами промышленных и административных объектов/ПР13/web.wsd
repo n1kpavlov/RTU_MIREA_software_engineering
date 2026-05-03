@@ -1,0 +1,125 @@
+@startuml
+!define RECTANGLE class
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 12
+skinparam packageBorderColor #1a3a5c
+skinparam packageFontColor #1a3a5c
+skinparam packageBackgroundColor #F0F4F8
+
+title Схема компьютерной сети АСУ МТО лыжной организации
+
+' Облако Интернет
+package "Интернет" as Internet #E8F0F8 {
+    cloud "Внешние сети\n(WAN)" as WAN
+}
+
+' Облако Удалённые пользователи
+package "Удалённые пользователи" as Remote {
+    actor "Тренер\n(Getac T800)" as Coach1
+    actor "Тренер\n(Getac T800)" as Coach2
+    actor "Администратор\n(удалённо)" as AdminRemote
+    note right of Coach1
+        Доступ через VPN
+        (IPsec IKEv2 / SSL)
+        4G LTE / Wi-Fi
+    end note
+}
+
+' Облако Периметр сети
+package "Периметр сети" as Perimeter #FFE8E8 {
+    rectangle "NGFW\nUserGate C150\n(Межсетевой экран + VPN)" as NGFW
+    rectangle "ИБП\nAPC Smart-UPS\nSRT 2200VA" as UPS
+    note bottom of NGFW
+        Внешний IP: x.x.x.x
+        LAN IP: 192.168.56.1
+        VPN-подсеть: 10.10.10.0/24
+        IPS/IDS, контент-фильтр
+    end note
+}
+
+' Облако Серверная
+package "Серверная (VLAN 10)\n192.168.56.0/24" as ServerRoom #E8FFE8 {
+    rectangle "Основной сервер\n(DEPO Storm 2400)\nXeon Silver 4310\n16 ГБ RAM, 240 ГБ SSD\n\nDocker Compose:\n• PostgreSQL 17\n• Spring Boot\n• Nginx + React" as MainServer
+    rectangle "Сервер аналитики\n(DEPO Storm 2400)\nXeon Silver 4310\n16 ГБ RAM, 240 ГБ SSD\n\n• Python/statsmodels\n• ClickHouse\n• Redash/Superset" as AnalyticServer
+    rectangle "Сервер бэкапа\n(DEPO Storm 1300)\nXeon E-2336\n8 ГБ RAM, 2 ТБ HDD\n\n• Bacula/Veeam" as BackupServer
+    
+    MainServer .. AnalyticServer : REST API\n(внутренний)
+    MainServer .. BackupServer : Bacula Agent\n(ночной бэкап)
+    AnalyticServer .. BackupServer : Bacula Agent\n(ночной бэкап)
+}
+
+' Облако Локальная сеть (АРМ)
+package "Локальная сеть — АРМ (VLAN 20)\n192.168.56.0/24" as LAN {
+    rectangle "Коммутатор L3\nCisco Catalyst 9300-24T\n(стек, 2 шт.)" as Switch
+    
+    rectangle "АРМ Менеджер\nпо закупкам\n(2 шт.)" as ARM1
+    rectangle "АРМ Кладовщик\n(2 шт.)" as ARM2
+    rectangle "АРМ Тренер\nстационарный\n(3 шт.)" as ARM3
+    rectangle "АРМ Руководитель\n(1 шт.)" as ARM4
+    rectangle "АРМ Бухгалтер\n(1 шт.)" as ARM5
+    rectangle "АРМ Администратор\n(1 шт.)" as ARM6
+}
+
+' Облако Wi-Fi / Мобильные устройства
+package "Wi-Fi (VLAN 30)\nГостевая / Мобильные" as WiFi {
+    rectangle "Точка доступа\nWi-Fi 5 (802.11ac)\nWPA3-Enterprise" as AP
+    rectangle "ТСД Zebra TC21\n(2 шт., склад)" as TSD
+    note right of TSD
+        Android 10, 4 ГБ RAM
+        Wi-Fi 5, Bluetooth 5.0
+        Сканер 1D/2D imager
+        IP67
+    end note
+}
+
+' Облако Видеонаблюдение
+package "Видеонаблюдение (VLAN 40)" as Video {
+    rectangle "NVR-регистратор\n+ IP-камеры (4 шт.)" as NVR
+}
+
+' Облако Интернет-провайдер
+package "Интернет-канал\n100 Мбит/с" as ISP {
+    rectangle "Провайдер" as Provider
+}
+
+' Соединения
+Internet -- NGFW : Внешний трафик\n(HTTPS, VPN)
+Provider -- Internet
+Remote -- Internet : VPN-туннель\n(IPsec/SSL)
+Coach1 -- Internet
+Coach2 -- Internet
+AdminRemote -- Internet
+
+NGFW -- Switch : 1 GbE\n(Trunk, все VLAN)
+Switch -- MainServer : 1 GbE (VLAN 10)
+Switch -- AnalyticServer : 1 GbE (VLAN 10)
+Switch -- BackupServer : 1 GbE (VLAN 10)
+Switch -- ARM1 : 1 GbE (VLAN 20)
+Switch -- ARM2 : 1 GbE (VLAN 20)
+Switch -- ARM3 : 1 GbE (VLAN 20)
+Switch -- ARM4 : 1 GbE (VLAN 20)
+Switch -- ARM5 : 1 GbE (VLAN 20)
+Switch -- ARM6 : 1 GbE (VLAN 20)
+Switch -- AP : 1 GbE (PoE+, VLAN 30)
+Switch -- NVR : 1 GbE (VLAN 40)
+AP -- TSD : Wi-Fi 5\n(VLAN 30)
+
+UPS .. MainServer : Питание
+UPS .. AnalyticServer : Питание
+UPS .. BackupServer : Питание
+UPS .. Switch : Питание
+UPS .. NGFW : Питание
+UPS .. AP : Питание (PoE)
+
+' Легенда
+legend right
+    **Легенда:**
+    - Все серверы: 2 блока питания (горячая замена)
+    - АРМ: DEPO Neos 300, Core i5-12400, 16 ГБ RAM, 256 ГБ SSD
+    - Планшеты тренеров: Getac T800, IP68, MIL-STD-810G
+    - Принтер этикеток: Zebra ZD421 (1 шт., подключён к АРМ кладовщика)
+    - Весь внешний трафик шифруется (HTTPS/TLS 1.3)
+endlegend
+
+@enduml

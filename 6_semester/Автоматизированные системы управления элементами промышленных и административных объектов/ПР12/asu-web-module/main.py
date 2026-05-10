@@ -66,7 +66,7 @@ async def get_dashboard():
         categories = conn.execute(text("""
             SELECT n.nomenclature_category, COUNT(*) as cnt
             FROM inventory_item i
-            JOIN nomenclature n ON i.inventory_item_nomenclature_id = n.nomenclature_id
+            JOIN nomenclature n ON i.nomenclature_id = n.nomenclature_id
             WHERE i.inventory_status = 'AVAILABLE'
             GROUP BY n.nomenclature_category ORDER BY cnt DESC
         """)).fetchall()
@@ -76,10 +76,10 @@ async def get_dashboard():
                    d.issuance_date, d.planned_return_date,
                    CASE WHEN d.planned_return_date < CURRENT_DATE THEN 'OVERDUE' ELSE 'ACTIVE' END AS effective_status
             FROM issuance_document d
-            JOIN athlete a ON d.issuance_document_athlete_id = a.athlete_id
-            JOIN "user" u ON a.athlete_user_id = u.user_id
-            JOIN inventory_item i ON d.issuance_document_inventory_item_id = i.inventory_item_id
-            JOIN nomenclature n ON i.inventory_item_nomenclature_id = n.nomenclature_id
+            JOIN athlete a ON d.athlete_id = a.athlete_id
+            JOIN "user" u ON a.user_id = u.user_id
+            JOIN inventory_item i ON d.inventory_item_id = i.inventory_item_id
+            JOIN nomenclature n ON i.nomenclature_id = n.nomenclature_id
             WHERE d.issuance_document_status IN ('ACTIVE', 'EXTENDED', 'OVERDUE')
             ORDER BY d.issuance_date DESC LIMIT 5
         """)).fetchall()
@@ -89,8 +89,8 @@ async def get_dashboard():
                    COUNT(d.issuance_document_id) AS overdue_items,
                    MAX(CURRENT_DATE - d.planned_return_date) AS max_days
             FROM athlete a
-            JOIN "user" u ON a.athlete_user_id = u.user_id
-            JOIN issuance_document d ON a.athlete_id = d.issuance_document_athlete_id
+            JOIN "user" u ON a.user_id = u.user_id
+            JOIN issuance_document d ON a.athlete_id = d.athlete_id
             WHERE d.planned_return_date < CURRENT_DATE
               AND d.issuance_document_status IN ('ACTIVE', 'OVERDUE')
             GROUP BY u.full_name, a.sports_category
@@ -121,13 +121,13 @@ async def get_athletes(
         a.athlete_id, u.full_name, a.sports_category, a.birth_year,
         g.group_name, cu.full_name AS coach_name, a.has_active_debt,
         (SELECT COUNT(*) FROM issuance_document d
-         WHERE d.issuance_document_athlete_id = a.athlete_id
+         WHERE d.athlete_id = a.athlete_id
          AND d.issuance_document_status IN ('ACTIVE','EXTENDED','OVERDUE')) AS active_items
     FROM athlete a
-    JOIN "user" u ON a.athlete_user_id = u.user_id
-    LEFT JOIN "group" g ON a.athlete_group_id = g.group_id
-    LEFT JOIN coach c ON a.athlete_coach_id = c.coach_id
-    LEFT JOIN "user" cu ON c.coach_user_id = cu.user_id
+    JOIN "user" u ON a.user_id = u.user_id
+    LEFT JOIN "group" g ON a.group_id = g.group_id
+    LEFT JOIN coach c ON a.coach_id = c.coach_id
+    LEFT JOIN "user" cu ON c.user_id = cu.user_id
     WHERE 1=1
     """
     params = {}
@@ -155,16 +155,16 @@ async def get_athlete_detail(athlete_id: int):
         a.sports_category, a.birth_year, a.has_active_debt,
         g.group_name, cu.full_name AS coach_name,
         (SELECT COUNT(*) FROM issuance_document d
-         WHERE d.issuance_document_athlete_id = a.athlete_id
+         WHERE d.athlete_id = a.athlete_id
          AND d.issuance_document_status IN ('ACTIVE','EXTENDED','OVERDUE')) AS active_items,
         (SELECT COUNT(*) FROM issuance_document d
-         WHERE d.issuance_document_athlete_id = a.athlete_id
+         WHERE d.athlete_id = a.athlete_id
          AND d.issuance_document_status = 'RETURNED') AS returned_items
     FROM athlete a
-    JOIN "user" u ON a.athlete_user_id = u.user_id
-    LEFT JOIN "group" g ON a.athlete_group_id = g.group_id
-    LEFT JOIN coach c ON a.athlete_coach_id = c.coach_id
-    LEFT JOIN "user" cu ON c.coach_user_id = cu.user_id
+    JOIN "user" u ON a.user_id = u.user_id
+    LEFT JOIN "group" g ON a.group_id = g.group_id
+    LEFT JOIN coach c ON a.coach_id = c.coach_id
+    LEFT JOIN "user" cu ON c.user_id = cu.user_id
     WHERE a.athlete_id = :athlete_id
     """
     with db.engine.connect() as conn:
@@ -185,7 +185,7 @@ async def get_available_inventory():
         i.inventory_item_id, i.barcode, i.size,
         n.nomenclature_name, n.nomenclature_category
     FROM inventory_item i
-    JOIN nomenclature n ON i.inventory_item_nomenclature_id = n.nomenclature_id
+    JOIN nomenclature n ON i.nomenclature_id = n.nomenclature_id
     WHERE i.inventory_status = 'AVAILABLE'
     ORDER BY n.nomenclature_name, i.size
     """
@@ -205,7 +205,7 @@ async def get_inventory_statistics():
         COUNT(*) FILTER (WHERE i.inventory_status IN ('DEFECTIVE','UNDER_REPAIR')) AS problems,
         COUNT(*) AS total
     FROM inventory_item i
-    JOIN nomenclature n ON i.inventory_item_nomenclature_id = n.nomenclature_id
+    JOIN nomenclature n ON i.nomenclature_id = n.nomenclature_id
     GROUP BY n.nomenclature_category ORDER BY total DESC
     """
     with db.engine.connect() as conn:
@@ -243,8 +243,8 @@ async def issue_inventory(request: IssueRequest):
             result = conn.execute(
                 text("""
                     INSERT INTO issuance_document
-                    (issuance_document_inventory_item_id, issuance_document_athlete_id,
-                     issuance_document_storekeeper_id, issuance_date, planned_return_date,
+                    (inventory_item_id, athlete_id,
+                     storekeeper_id, issuance_date, planned_return_date,
                      issuance_document_status, condition_on_issue)
                     VALUES (:inv_id, :ath_id, 1, CURRENT_DATE, :ret_date, 'ACTIVE', 'NEW')
                     RETURNING issuance_document_id
@@ -256,7 +256,7 @@ async def issue_inventory(request: IssueRequest):
             conn.execute(
                 text("""
                     UPDATE inventory_item
-                    SET inventory_status = 'ISSUED', current_holder_id = :ath_id
+                    SET inventory_status = 'ISSUED', athlete_id = :ath_id
                     WHERE inventory_item_id = :inv_id
                 """),
                 {"ath_id": request.athlete_id, "inv_id": request.inventory_item_id}
@@ -291,10 +291,10 @@ async def get_active_issuances(filter_status: str = Query("all")):
             ELSE 0
         END AS days_overdue
     FROM issuance_document d
-    JOIN athlete a ON d.issuance_document_athlete_id = a.athlete_id
-    JOIN "user" u ON a.athlete_user_id = u.user_id
-    JOIN inventory_item i ON d.issuance_document_inventory_item_id = i.inventory_item_id
-    JOIN nomenclature n ON i.inventory_item_nomenclature_id = n.nomenclature_id
+    JOIN athlete a ON d.athlete_id = a.athlete_id
+    JOIN "user" u ON a.user_id = u.user_id
+    JOIN inventory_item i ON d.inventory_item_id = i.inventory_item_id
+    JOIN nomenclature n ON i.nomenclature_id = n.nomenclature_id
     WHERE d.issuance_document_status IN ('ACTIVE', 'EXTENDED', 'OVERDUE')
     """
     params = {}
@@ -320,7 +320,7 @@ async def return_inventory(request: ReturnRequest):
 
             result = conn.execute(
                 text("""
-                    SELECT issuance_document_inventory_item_id, issuance_document_status
+                    SELECT inventory_item_id, issuance_document_status
                     FROM issuance_document WHERE issuance_document_id = :id
                 """),
                 {"id": request.issuance_id}
@@ -345,7 +345,7 @@ async def return_inventory(request: ReturnRequest):
             conn.execute(
                 text("""
                     UPDATE inventory_item
-                    SET inventory_status = 'AVAILABLE', current_holder_id = NULL
+                    SET inventory_status = 'AVAILABLE', athlete_id = NULL
                     WHERE inventory_item_id = :inv_id
                 """),
                 {"inv_id": row[0]}

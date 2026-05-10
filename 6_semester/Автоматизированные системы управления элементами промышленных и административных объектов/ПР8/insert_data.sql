@@ -37,12 +37,12 @@ INSERT INTO warehouse (warehouse_name, address, type) VALUES
 ('Склад экипировки сборной', 'г. Москва, Олимпийский пр-т, 5', 'main'),
 ('Склад утилизации', 'г. Мытищи, ул. Промышленная, 7', 'reserve');
 
-INSERT INTO coach (coach_user_id, specialization, coach_category) VALUES
+INSERT INTO coach (user_id, specialization, coach_category) VALUES
 (16, 'Лыжные гонки', 'Высшая'),
 (17, 'Биатлон', 'Первая'),
 (18, 'Горные лыжи', 'Высшая');
 
-INSERT INTO "group" (group_name, group_coach_id, group_created_at) VALUES
+INSERT INTO "group" (group_name, coach_id, group_created_at) VALUES
 ('Группа начальной подготовки №1', 1, '2024-09-01'),
 ('Группа начальной подготовки №2', 1, '2024-09-01'),
 ('Группа спортивного совершенствования', 1, '2024-09-01'),
@@ -54,7 +54,7 @@ INSERT INTO "group" (group_name, group_coach_id, group_created_at) VALUES
 ('Спортивно-оздоровительная группа', 1, '2024-10-01'),
 ('Группа высшего спортивного мастерства', 1, '2024-10-01');
 
-INSERT INTO athlete (athlete_user_id, sports_category, birth_year, athlete_group_id, athlete_coach_id, has_active_debt) VALUES
+INSERT INTO athlete (user_id, sports_category, birth_year, group_id, coach_id, has_active_debt) VALUES
 (1, 'КМС', 2005, 3, 1, FALSE),
 (2, 'МС', 2003, 3, 1, FALSE),
 (3, '1 разряд', 2007, 1, 1, TRUE),
@@ -71,21 +71,21 @@ INSERT INTO athlete (athlete_user_id, sports_category, birth_year, athlete_group
 (14, '1 разряд', 2008, 7, 3, FALSE),
 (15, 'КМС', 2005, 8, 3, FALSE);
 
-INSERT INTO storekeeper (storekeeper_user_id, storekeeper_warehouse_id, certificate_number) VALUES
+INSERT INTO storekeeper (user_id, warehouse_id, certificate_number) VALUES
 (19, 1, 'СКЛ-2024-001'),
 (20, 2, 'СКЛ-2024-002');
 
-INSERT INTO purchase_manager (purchase_manager_user_id, department) VALUES
+INSERT INTO purchase_manager (user_id, department) VALUES
 (21, 'Отдел снабжения'),
 (22, 'Отдел закупок спортивного инвентаря');
 
-INSERT INTO manager (manager_user_id, position, manager_access_level) VALUES
+INSERT INTO manager (user_id, position, manager_access_level) VALUES
 (23, 'Директор спортивной школы', 3);
 
-INSERT INTO accountant (accountant_user_id, section) VALUES
+INSERT INTO accountant (user_id, section) VALUES
 (24, 'Материальный учет');
 
-INSERT INTO administrator (administrator_user_id, administrator_access_level) VALUES
+INSERT INTO administrator (user_id, administrator_access_level) VALUES
 (25, 'FULL');
 
 INSERT INTO nomenclature (article, nomenclature_name, nomenclature_category, unit, standard_service_life, min_stock_level, manufacturer) VALUES
@@ -131,7 +131,7 @@ INSERT INTO purchase_request (purchase_request_number, purchase_request_created_
 ('ЗАЯВ-2026-009', '2026-03-10 09:45:00', 'APPROVED', 16, 23, 310000.00, 'Крупная закупка лыж Fischer'),
 ('ЗАЯВ-2026-010', '2026-03-15 13:15:00', 'ON_APPROVAL', 18, NULL, 120000.00, 'Закупка горнолыжного инвентаря');
 
-INSERT INTO purchase_request_item (purchase_request_item_request_id, purchase_request_item_nomenclature_id, quantity, expected_price, priority) VALUES
+INSERT INTO purchase_request_item (purchase_request_id, nomenclature_id, quantity, expected_price, priority) VALUES
 (1, 1, 10, 45000.00, 'HIGH'),
 (1, 6, 15, 25000.00, 'HIGH'),
 (1, 10, 20, 8000.00, 'MEDIUM'),
@@ -148,7 +148,7 @@ INSERT INTO purchase_request_item (purchase_request_item_request_id, purchase_re
 (9, 1, 20, 45000.00, 'HIGH'),
 (10, 4, 6, 48000.00, 'HIGH');
 
-INSERT INTO purchase_order (purchase_order_number, purchase_order_created_date, purchase_order_status, purchase_order_supplier_id, purchase_order_manager_id, total_amount, expected_delivery_date) VALUES
+INSERT INTO purchase_order (purchase_order_number, purchase_order_created_date, purchase_order_status, supplier_id, purchase_manager_id, total_amount, expected_delivery_date) VALUES
 ('ЗАКАЗ-2026-001', '2026-01-12', 'SENT', 3, 1, 825000.00, '2026-08-15'),
 ('ЗАКАЗ-2026-002', '2026-01-18', 'DELIVERED', 4, 2, 160000.00, '2026-02-01'),
 ('ЗАКАЗ-2026-003', '2026-02-05', 'IN_TRANSIT', 1, 1, 250000.00, '2026-03-10'),
@@ -160,7 +160,7 @@ INSERT INTO purchase_order (purchase_order_number, purchase_order_created_date, 
 ('ЗАКАЗ-2026-009', '2026-03-20', 'IN_TRANSIT', 8, 2, 210000.00, '2026-04-15'),
 ('ЗАКАЗ-2026-010', '2026-03-25', 'SENT', 11, 1, 135000.00, '2026-08-20');
 
-INSERT INTO inventory_item (barcode, inventory_item_nomenclature_id, serial_number, inventory_status, inventory_item_warehouse_id, receipt_date, purchase_cost, size, current_holder_id, inventory_notes) VALUES
+INSERT INTO inventory_item (barcode, nomenclature_id, serial_number, inventory_status, warehouse_id, receipt_date, purchase_cost, size, athlete_id, inventory_notes) VALUES
 ('SKI001-2024-001', 1, 'FS-2024-001', 'AVAILABLE', 1, '2024-10-01', 45000.00, '190', NULL, 'Новые'),
 ('SKI001-2024-002', 1, 'FS-2024-002', 'ISSUED', 1, '2024-10-01', 45000.00, '195', 1, 'Выданы Иванову'),
 ('SKI001-2024-003', 1, 'FS-2024-003', 'AVAILABLE', 1, '2024-10-01', 45000.00, '200', NULL, 'Новые'),
@@ -182,7 +182,7 @@ INSERT INTO inventory_item (barcode, inventory_item_nomenclature_id, serial_numb
 ('WAX002-2024-002', 14, 'WAX-HF6-002', 'ISSUED', 1, '2024-12-01', 600.00, NULL, 3, 'Выданы сервисной бригаде'),
 ('WAX003-2024-001', 15, 'WAX-FC7-001', 'AVAILABLE', 1, '2024-12-01', 1200.00, NULL, NULL, NULL);
 
-INSERT INTO receipt_invoice (receipt_invoice_number, receipt_invoice_date, receipt_invoice_order_id, receipt_invoice_storekeeper_id, receipt_invoice_status, actual_amount) VALUES
+INSERT INTO receipt_invoice (receipt_invoice_number, receipt_invoice_date, purchase_order_id, storekeeper_id, receipt_invoice_status, actual_amount) VALUES
 ('ПН-2024-001', '2024-10-01', 1, 1, 'POSTED', 825000.00),
 ('ПН-2024-002', '2024-11-15', 2, 1, 'POSTED', 160000.00),
 ('ПН-2024-003', '2024-12-01', 3, 2, 'POSTED', 250000.00),
@@ -194,7 +194,7 @@ INSERT INTO receipt_invoice (receipt_invoice_number, receipt_invoice_date, recei
 ('ПН-2025-006', '2025-03-20', 5, 1, 'CANCELLED', 0.00),
 ('ПН-2025-007', '2025-03-25', 10, 2, 'DRAFT', 135000.00);
 
-INSERT INTO issuance_document (issuance_document_inventory_item_id, issuance_document_athlete_id, issuance_document_storekeeper_id, issuance_date, planned_return_date, actual_return_date, issuance_document_status, condition_on_issue, condition_on_return, issuance_document_notes) VALUES
+INSERT INTO issuance_document (inventory_item_id, athlete_id, storekeeper_id, issuance_date, planned_return_date, actual_return_date, issuance_document_status, condition_on_issue, condition_on_return, issuance_document_notes) VALUES
 (2, 1, 1, '2024-12-01', '2025-03-30', NULL, 'ACTIVE', 'NEW', NULL, 'На сезон 2024-2025'),
 (5, 2, 1, '2024-12-05', '2025-03-30', NULL, 'ACTIVE', 'NEW', NULL, 'На сезон 2024-2025'),
 (7, 4, 2, '2024-12-10', '2025-03-30', NULL, 'ACTIVE', 'NEW', NULL, 'На сезон 2024-2025'),
@@ -211,7 +211,7 @@ INSERT INTO issuance_document (issuance_document_inventory_item_id, issuance_doc
 (14, 14, 2, '2024-11-01', '2025-01-01', NULL, 'EXTENDED', 'NEW', NULL, 'Продлено до 01.02.2025'),
 (15, 15, 1, '2024-11-15', '2025-01-15', NULL, 'EXTENDED', 'NEW', NULL, 'Продлено до 15.02.2025');
 
-INSERT INTO operation_log (operation_log_user_id, action, entity_type, entity_id, details, ip_address, operation_log_created_at) VALUES
+INSERT INTO operation_log (user_id, action, entity_type, entity_id, details, ip_address, operation_log_created_at) VALUES
 (25, 'CREATE_USER', 'user', 1, '{"created_by": "admin", "role": "athlete"}', '192.168.1.100', '2024-09-01 09:00:00'),
 (25, 'CREATE_USER', 'user', 16, '{"created_by": "admin", "role": "coach"}', '192.168.1.100', '2024-09-01 09:05:00'),
 (16, 'CREATE_REQUEST', 'purchase_request', 1, '{"amount": 250000}', '192.168.1.101', '2026-01-10 09:00:00'),

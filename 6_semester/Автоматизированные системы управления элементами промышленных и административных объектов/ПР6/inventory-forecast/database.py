@@ -25,8 +25,8 @@ class DatabaseManager:
             DATE(d.issuance_date) as ds,
             COUNT(*) as y
         FROM issuance_document d
-        JOIN inventory_item i ON d.issuance_document_inventory_item_id = i.inventory_item_id
-        WHERE i.inventory_item_nomenclature_id = :nomenclature_id
+        JOIN inventory_item i ON d.inventory_item_id = i.inventory_item_id
+        WHERE i.nomenclature_id = :nomenclature_id
             AND d.issuance_date >= :start_date
         """
         params = {"nomenclature_id": nomenclature_id, "start_date": start_date}
@@ -56,7 +56,7 @@ class DatabaseManager:
         query = f"""
         SELECT COUNT(*) as stock
         FROM inventory_item
-        WHERE inventory_item_nomenclature_id = :nomenclature_id
+        WHERE nomenclature_id = :nomenclature_id
             AND inventory_status = 'AVAILABLE'
         """
         with self.engine.connect() as conn:

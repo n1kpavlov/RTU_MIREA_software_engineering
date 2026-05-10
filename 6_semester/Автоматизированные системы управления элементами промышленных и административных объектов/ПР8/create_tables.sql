@@ -24,7 +24,7 @@ CREATE TABLE warehouse (
 -- Тренеры
 CREATE TABLE coach (
     coach_id SERIAL PRIMARY KEY,
-    coach_user_id INTEGER NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
     specialization VARCHAR(100),
     coach_category VARCHAR(50)
 );
@@ -33,40 +33,40 @@ CREATE TABLE coach (
 CREATE TABLE "group" (
     group_id SERIAL PRIMARY KEY,
     group_name VARCHAR(100) NOT NULL,
-    group_coach_id INTEGER REFERENCES coach(coach_id) ON DELETE SET NULL,
+    coach_id INTEGER REFERENCES coach(coach_id) ON DELETE SET NULL,
     group_created_at TIMESTAMP DEFAULT NOW()
 );
 
 -- Спортсмены
 CREATE TABLE athlete (
     athlete_id SERIAL PRIMARY KEY,
-    athlete_user_id INTEGER NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
     sports_category VARCHAR(50),
     birth_year INTEGER,
-    athlete_group_id INTEGER REFERENCES "group"(group_id) ON DELETE SET NULL,
-    athlete_coach_id INTEGER REFERENCES coach(coach_id) ON DELETE SET NULL,
+    group_id INTEGER REFERENCES "group"(group_id) ON DELETE SET NULL,
+    coach_id INTEGER REFERENCES coach(coach_id) ON DELETE SET NULL,
     has_active_debt BOOLEAN DEFAULT FALSE
 );
 
 -- Кладовщики
 CREATE TABLE storekeeper (
     storekeeper_id SERIAL PRIMARY KEY,
-    storekeeper_user_id INTEGER NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
-    storekeeper_warehouse_id INTEGER REFERENCES warehouse(warehouse_id) ON DELETE SET NULL,
+    user_id INTEGER NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
+    warehouse_id INTEGER REFERENCES warehouse(warehouse_id) ON DELETE SET NULL,
     certificate_number VARCHAR(50)
 );
 
 -- Менеджеры по закупкам
 CREATE TABLE purchase_manager (
     purchase_manager_id SERIAL PRIMARY KEY,
-    purchase_manager_user_id INTEGER NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
     department VARCHAR(100)
 );
 
 -- Руководители
 CREATE TABLE manager (
     manager_id SERIAL PRIMARY KEY,
-    manager_user_id INTEGER NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
     position VARCHAR(100),
     manager_access_level INTEGER DEFAULT 1 CHECK (manager_access_level BETWEEN 1 AND 3)
 );
@@ -74,14 +74,14 @@ CREATE TABLE manager (
 -- Бухгалтеры
 CREATE TABLE accountant (
     accountant_id SERIAL PRIMARY KEY,
-    accountant_user_id INTEGER NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
     section VARCHAR(100)
 );
 
 -- Администраторы
 CREATE TABLE administrator (
     administrator_id SERIAL PRIMARY KEY,
-    administrator_user_id INTEGER NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
     administrator_access_level VARCHAR(30) DEFAULT 'FULL' CHECK (administrator_access_level IN ('FULL', 'PARTIAL', 'READONLY'))
 );
 
@@ -129,8 +129,8 @@ CREATE TABLE purchase_request (
 -- Позиции заявок
 CREATE TABLE purchase_request_item (
     purchase_request_item_id SERIAL PRIMARY KEY,
-    purchase_request_item_request_id INTEGER NOT NULL REFERENCES purchase_request(purchase_request_id) ON DELETE CASCADE,
-    purchase_request_item_nomenclature_id INTEGER NOT NULL REFERENCES nomenclature(nomenclature_id) ON DELETE RESTRICT,
+    purchase_request_id INTEGER NOT NULL REFERENCES purchase_request(purchase_request_id) ON DELETE CASCADE,
+    nomenclature_id INTEGER NOT NULL REFERENCES nomenclature(nomenclature_id) ON DELETE RESTRICT,
     quantity INTEGER NOT NULL CHECK (quantity > 0),
     expected_price DECIMAL(12,2),
     priority VARCHAR(20) DEFAULT 'MEDIUM' CHECK (priority IN ('HIGH', 'MEDIUM', 'LOW'))
@@ -142,8 +142,8 @@ CREATE TABLE purchase_order (
     purchase_order_number VARCHAR(50) UNIQUE NOT NULL,
     purchase_order_created_date DATE DEFAULT CURRENT_DATE,
     purchase_order_status VARCHAR(30) NOT NULL DEFAULT 'DRAFT' CHECK (purchase_order_status IN ('DRAFT', 'SENT', 'IN_TRANSIT', 'DELIVERED', 'CLOSED')),
-    purchase_order_supplier_id INTEGER NOT NULL REFERENCES supplier(supplier_id),
-    purchase_order_manager_id INTEGER NOT NULL REFERENCES purchase_manager(purchase_manager_id),
+    supplier_id INTEGER NOT NULL REFERENCES supplier(supplier_id),
+    purchase_manager_id INTEGER NOT NULL REFERENCES purchase_manager(purchase_manager_id),
     total_amount DECIMAL(14,2),
     expected_delivery_date DATE,
     purchase_order_created_at TIMESTAMP DEFAULT NOW()
@@ -153,15 +153,15 @@ CREATE TABLE purchase_order (
 CREATE TABLE inventory_item (
     inventory_item_id SERIAL PRIMARY KEY,
     barcode VARCHAR(50) UNIQUE NOT NULL,
-    inventory_item_nomenclature_id INTEGER NOT NULL REFERENCES nomenclature(nomenclature_id) ON DELETE RESTRICT,
+    nomenclature_id INTEGER NOT NULL REFERENCES nomenclature(nomenclature_id) ON DELETE RESTRICT,
     serial_number VARCHAR(100),
     inventory_status VARCHAR(30) NOT NULL DEFAULT 'AVAILABLE' CHECK (inventory_status IN ('AVAILABLE', 'RESERVED', 'ISSUED', 'UNDER_REPAIR', 'DEFECTIVE', 'WRITTEN_OFF')),
-    inventory_item_warehouse_id INTEGER REFERENCES warehouse(warehouse_id) ON DELETE SET NULL,
+    warehouse_id INTEGER REFERENCES warehouse(warehouse_id) ON DELETE SET NULL,
     receipt_date DATE,
     write_off_date DATE,
     purchase_cost DECIMAL(12,2),
     size VARCHAR(20),
-    current_holder_id INTEGER REFERENCES athlete(athlete_id) ON DELETE SET NULL,
+    athlete_id INTEGER REFERENCES athlete(athlete_id) ON DELETE SET NULL,
     inventory_notes TEXT,
     inventory_created_at TIMESTAMP DEFAULT NOW()
 );
@@ -171,8 +171,8 @@ CREATE TABLE receipt_invoice (
     receipt_invoice_id SERIAL PRIMARY KEY,
     receipt_invoice_number VARCHAR(50) UNIQUE NOT NULL,
     receipt_invoice_date DATE DEFAULT CURRENT_DATE,
-    receipt_invoice_order_id INTEGER REFERENCES purchase_order(purchase_order_id) ON DELETE SET NULL,
-    receipt_invoice_storekeeper_id INTEGER NOT NULL REFERENCES storekeeper(storekeeper_id),
+    purchase_order_id INTEGER REFERENCES purchase_order(purchase_order_id) ON DELETE SET NULL,
+    storekeeper_id INTEGER NOT NULL REFERENCES storekeeper(storekeeper_id),
     receipt_invoice_status VARCHAR(30) DEFAULT 'POSTED' CHECK (receipt_invoice_status IN ('DRAFT', 'POSTED', 'CANCELLED')),
     actual_amount DECIMAL(14,2),
     receipt_invoice_created_at TIMESTAMP DEFAULT NOW()
@@ -181,9 +181,9 @@ CREATE TABLE receipt_invoice (
 -- Документы выдачи
 CREATE TABLE issuance_document (
     issuance_document_id SERIAL PRIMARY KEY,
-    issuance_document_inventory_item_id INTEGER NOT NULL REFERENCES inventory_item(inventory_item_id) ON DELETE RESTRICT,
-    issuance_document_athlete_id INTEGER NOT NULL REFERENCES athlete(athlete_id) ON DELETE RESTRICT,
-    issuance_document_storekeeper_id INTEGER NOT NULL REFERENCES storekeeper(storekeeper_id),
+    inventory_item_id INTEGER NOT NULL REFERENCES inventory_item(inventory_item_id) ON DELETE RESTRICT,
+    athlete_id INTEGER NOT NULL REFERENCES athlete(athlete_id) ON DELETE RESTRICT,
+    storekeeper_id INTEGER NOT NULL REFERENCES storekeeper(storekeeper_id),
     issuance_date DATE NOT NULL,
     planned_return_date DATE,
     actual_return_date DATE,
@@ -197,7 +197,7 @@ CREATE TABLE issuance_document (
 -- Журнал операций (аудит)
 CREATE TABLE operation_log (
     operation_log_id SERIAL PRIMARY KEY,
-    operation_log_user_id INTEGER REFERENCES "user"(user_id) ON DELETE SET NULL,
+    user_id INTEGER REFERENCES "user"(user_id) ON DELETE SET NULL,
     action VARCHAR(100) NOT NULL,
     entity_type VARCHAR(50),
     entity_id INTEGER,
